@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+node_modules/
+.DS_Store
+data/mongodb/
