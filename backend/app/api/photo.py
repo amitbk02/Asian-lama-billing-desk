@@ -1,6 +1,9 @@
 from datetime import datetime
+from io import BytesIO
 
+from bson import ObjectId
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import StreamingResponse
 
 from backend.app.database import problems, db
 
@@ -174,3 +177,87 @@ async def upload_after_photo(
         "filename": photo.filename,
         "file_id": str(file_id)
     }
+
+
+@router.get("/{problem_number}/photos/{photo_type}")
+def download_photo(problem_number: str, photo_type: str):
+
+    problem = problems.find_one({"problem_number": problem_number})
+
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+
+    if photo_type not in ["before", "after"]:
+        raise HTTPException(status_code=400, detail="Invalid photo type")
+
+    file_id_field = f"{photo_type}_photo_file_id"
+    file_id = problem.get(file_id_field)
+
+    if not file_id:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{photo_type.capitalize()} photo not found"
+        )
+
+    from gridfs import GridFS
+
+    fs = GridFS(db)
+
+    try:
+        grid_file = fs.get(ObjectId(file_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Photo file not found")
+
+    return StreamingResponse(
+        BytesIO(grid_file.read()),
+        media_type=grid_file.content_type or "image/jpeg",
+        headers={
+            "Content-Disposition":
+                f'inline; filename="{grid_file.filename}"'
+        }
+    )
+
+
+
+
+
+
+
+
+@router.get("/{problem_number}/photos/{photo_type}")
+def download_photo(problem_number: str, photo_type: str):
+
+    problem = problems.find_one({"problem_number": problem_number})
+
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+
+    if photo_type not in ["before", "after"]:
+        raise HTTPException(status_code=400, detail="Invalid photo type")
+
+    file_id_field = f"{photo_type}_photo_file_id"
+    file_id = problem.get(file_id_field)
+
+    if not file_id:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{photo_type.capitalize()} photo not found"
+        )
+
+    from gridfs import GridFS
+
+    fs = GridFS(db)
+
+    try:
+        grid_file = fs.get(ObjectId(file_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Photo file not found")
+
+    return StreamingResponse(
+        BytesIO(grid_file.read()),
+        media_type=grid_file.content_type or "image/jpeg",
+        headers={
+            "Content-Disposition":
+                f'inline; filename="{grid_file.filename}"'
+        }
+    )
